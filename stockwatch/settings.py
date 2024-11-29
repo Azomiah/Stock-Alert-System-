@@ -100,16 +100,20 @@ STATICFILES_DIRS = [
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Email settings
+# General Email Settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')  # Use App Password for Gmail
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 NOTIFICATION_EMAIL = os.getenv('NOTIFICATION_EMAIL')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
+# Stock Alert Gmail Settings
+GMAIL_EMAIL = os.getenv('GMAIL_EMAIL')
+GMAIL_APP_PASSWORD = os.getenv('GMAIL_APP_PASSWORD')
+SITE_URL = os.getenv('SITE_URL', 'http://localhost:8000')
 # Security Settings
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG

@@ -4,10 +4,12 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import Stock, PriceTarget
-from .stock_monitor import StockMonitor
 import json
 import logging
+from decimal import Decimal
+from django.http import JsonResponse
+from .stock_monitor import StockMonitor
+from .models import Stock, PriceTarget
 
 logger = logging.getLogger(__name__)
 
@@ -184,3 +186,24 @@ def test_email(request):
             'status': 'error',
             'message': str(e)
         })
+
+
+# Add to views.py
+def test_stock_alert(request):
+    monitor = StockMonitor()
+    example_stock = Stock(
+        symbol="AAPL",
+        name="Apple Inc.",
+        current_price=Decimal("190.50"),
+        previous_close=Decimal("188.25"),
+        day_high=Decimal("191.00"),
+        day_low=Decimal("189.00")
+    )
+    example_target = PriceTarget(
+        stock=example_stock,
+        price=Decimal("190.00"),
+        direction="above"
+    )
+
+    monitor.send_alert(example_stock, example_target, example_stock.current_price)
+    return JsonResponse({'status': 'success', 'message': 'Test email sent'})
