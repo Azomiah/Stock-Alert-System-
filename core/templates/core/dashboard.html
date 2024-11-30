@@ -64,8 +64,8 @@
                         class="text-red-400 hover:text-red-300"
                     >
                         <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M18 6L6 18" />
-                            <path d="M6 6l12 12" />
+                            <path d="M18 6L6 18"></path>
+                            <path d="M6 6l12 12"></path>
                         </svg>
                     </button>
                 </div>
@@ -91,8 +91,8 @@
                             class="text-red-400 hover:text-red-300"
                         >
                             <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M18 6L6 18" />
-                                <path d="M6 6l12 12" />
+                                <path d="M18 6L6 18"></path>
+                                <path d="M6 6l12 12"></path>
                             </svg>
                         </button>
                     </div>
@@ -144,11 +144,8 @@ async function refreshStocks() {
                 'X-CSRFToken': getCookie('csrftoken')
             }
         });
-        const data = await response.json();
-        if (data.status === 'success') {
+        if (response.ok) {
             location.reload();
-        } else {
-            console.error('Error refreshing stocks:', data.message);
         }
     } catch (error) {
         console.error('Error refreshing stocks:', error);
@@ -171,11 +168,9 @@ async function addStock() {
             body: JSON.stringify({ symbol })
         });
 
-        const data = await response.json();
-        if (data.status === 'success') {
+        if (response.ok) {
             location.reload();
-        } else {
-            console.error('Error adding stock:', data.message);
+            input.value = '';
         }
     } catch (error) {
         console.error('Error adding stock:', error);
@@ -200,6 +195,7 @@ async function addTarget(stockId, form) {
 
         if (response.ok) {
             location.reload();
+            form.reset();
         }
     } catch (error) {
         console.error('Error adding target:', error);

@@ -1,4 +1,6 @@
 # core/views.py
+from datetime import datetime
+
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
@@ -168,27 +170,6 @@ def check_prices(request):
         })
 
 
-def test_email(request):
-    try:
-        logger.info("Sending test email")
-        send_mail(
-            'Test StockWatch Alert',
-            'This is a test email from StockWatch',
-            settings.EMAIL_HOST_USER,
-            [settings.NOTIFICATION_EMAIL],
-            fail_silently=False,
-        )
-        logger.info("Test email sent successfully")
-        return JsonResponse({'status': 'success'})
-    except Exception as e:
-        logger.error(f"Error sending test email: {str(e)}", exc_info=True)
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        })
-
-
-# Add to views.py
 def test_stock_alert(request):
     monitor = StockMonitor()
     example_stock = Stock(
@@ -197,13 +178,28 @@ def test_stock_alert(request):
         current_price=Decimal("190.50"),
         previous_close=Decimal("188.25"),
         day_high=Decimal("191.00"),
-        day_low=Decimal("189.00")
+        day_low=Decimal("189.00"),
+        volume=1000000,
+        market_cap=3000000000000
     )
     example_target = PriceTarget(
         stock=example_stock,
         price=Decimal("190.00"),
-        direction="above"
+        direction="above",
+        is_active=True
     )
 
-    monitor.send_alert(example_stock, example_target, example_stock.current_price)
-    return JsonResponse({'status': 'success', 'message': 'Test email sent'})
+    subject = f"🚨 StockWatch Alert: {example_stock.symbol}"
+    message = (
+        f"Stock Alert for {example_stock.symbol} ({example_stock.name})\n\n"
+        f"The stock price has risen above your target of ${example_target.price}\n\n"
+        f"Current Price: ${example_stock.current_price}\n"
+        f"Previous Close: ${example_stock.previous_close}\n"
+        f"Today's Range: ${example_stock.day_low} - ${example_stock.day_high}\n"
+        f"Time: {datetime.now().strftime('%I:%M %p, %b %d, %Y')}\n\n"
+        f"View more details at: {settings.SITE_URL}/dashboard/\n\n"
+        f"StockWatch - Your Market Monitor"
+    )
+
+    monitor.send_gmail_alert(subject, message)
+    return JsonResponse({'status': 'success', 'message': 'Test alert sent'})
