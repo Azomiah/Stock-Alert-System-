@@ -59,9 +59,14 @@
    <section class="py-20 bg-black">
        <div class="container mx-auto px-6 text-center">
            <h2 class="text-4xl font-bold mb-8 text-[#C6A265]">Ready to Take Control of Your Investments?</h2>
-           <a href="{% url 'dashboard' %}" class="inline-block px-8 py-4 bg-[#C6A265] text-black font-bold rounded-lg hover:bg-[#B08D4C] transition duration-300">
-               Get Started Now
-           </a>
+           <div class="flex gap-4 justify-center">
+                <a href="{% url 'dashboard' %}" class="inline-block px-8 py-4 bg-[#C6A265] text-black font-bold rounded-lg hover:bg-[#B08D4C] transition duration-300">
+                    Get Started
+                </a>
+                <a href="{% url 'reports' %}" class="inline-block px-8 py-4 bg-black text-[#C6A265] font-bold rounded-lg border-2 border-[#C6A265] hover:bg-[#C6A265] hover:text-black transition duration-300">
+                    Get Financial Report
+                </a>
+            </div>
        </div>
    </section>
 

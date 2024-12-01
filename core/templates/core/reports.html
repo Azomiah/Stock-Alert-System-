@@ -1,0 +1,152 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-black">
+    <!-- Header -->
+    <header class="bg-zinc-900 shadow">
+        <div class="max-w-7xl mx-auto py-6 px-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-[#C6A265]">Financial Report</h1>
+                <div class="flex items-center gap-4">
+                    <a
+                        href="{% url 'dashboard' %}"
+                        class="flex items-center gap-2 px-4 py-2 bg-[#C6A265] text-black rounded-md hover:bg-[#B08D4C]"
+                    >
+                        Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 px-4">
+        <!-- Report Generator Form -->
+        <div class="bg-zinc-900 rounded-lg shadow p-6 mb-6">
+            <form id="reportForm" class="space-y-4">
+                <div>
+                    <label for="topic" class="block text-[#C6A265] mb-2 text-lg">Stock Symbol</label>
+                    <input
+                        type="text"
+                        id="topic"
+                        name="topic"
+                        placeholder="Enter stock symbol (e.g., AAPL, MSFT, GOOGL)"
+                        class="w-full px-4 py-2 rounded-md bg-black text-[#C6A265] border border-[#C6A265]/20 focus:border-[#C6A265] focus:outline-none"
+                        required
+                    />
+                </div>
+                <button
+                    type="submit"
+                    class="w-full px-4 py-2 bg-[#C6A265] text-black rounded-md hover:bg-[#B08D4C] font-semibold transition-colors"
+                >
+                    Generate Report
+                </button>
+            </form>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden">
+            <div class="flex justify-center items-center p-12">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C6A265]"></div>
+            </div>
+        </div>
+
+        <!-- Report Display -->
+        <div id="reportContainer" class="bg-zinc-900 rounded-lg shadow p-6 hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-[#C6A265]">Report Details</h2>
+                <button
+                    onclick="downloadReport()"
+                    class="px-4 py-2 bg-[#C6A265] text-black rounded-md hover:bg-[#B08D4C] font-semibold transition-colors"
+                >
+                    Download Report
+                </button>
+            </div>
+            <div id="reportContent" class="text-[#C6A265] space-y-4">
+                <!-- Report content will be inserted here -->
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+document.getElementById('reportForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const topic = document.getElementById('topic').value.trim().toUpperCase();
+    const loadingState = document.getElementById('loadingState');
+    const reportContainer = document.getElementById('reportContainer');
+    const reportContent = document.getElementById('reportContent');
+
+    if (!topic) {
+        alert('Please enter a stock symbol');
+        return;
+    }
+
+    // Show loading state
+    loadingState.classList.remove('hidden');
+    reportContainer.classList.add('hidden');
+
+    try {
+        const response = await fetch('/generate-report/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ topic })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            reportContent.innerHTML = data.report;
+            reportContainer.classList.remove('hidden');
+        } else {
+            throw new Error(data.error || 'Failed to generate report');
+        }
+    } catch (error) {
+        alert(error.message || 'An error occurred while generating the report. Please try again.');
+    } finally {
+        loadingState.classList.add('hidden');
+    }
+});
+
+function downloadReport() {
+    const reportContent = document.getElementById('reportContent');
+    const topic = document.getElementById('topic').value.trim().toUpperCase();
+
+    // Create a text version of the report by removing HTML tags
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = reportContent.innerHTML;
+    const textContent = tempDiv.textContent || tempDiv.innerText;
+
+    // Create and trigger download
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${topic}_Financial_Report_${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

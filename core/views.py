@@ -6,12 +6,23 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.core.mail import send_mail
 from django.conf import settings
-import json
-import logging
 from decimal import Decimal
-from django.http import JsonResponse
 from .stock_monitor import StockMonitor
 from .models import Stock, PriceTarget
+from django.shortcuts import render
+import anthropic
+import requests
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+import yfinance as yf
+import json
+import logging
+
+
+
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -203,3 +214,160 @@ def test_stock_alert(request):
 
     monitor.send_gmail_alert(subject, message)
     return JsonResponse({'status': 'success', 'message': 'Test alert sent'})
+
+
+def reports_page(request):
+    """Render the reports page"""
+    return render(request, 'core/reports.html')
+
+
+def analyze_performance(info):
+    try:
+        change = ((info.get('currentPrice', 0) - info.get('previousClose', 0)) /
+                  info.get('previousClose', 0) * 100)
+        if change > 5:
+            return "Strong positive performance (>5% gain)"
+        elif change > 2:
+            return "Moderate positive performance (2-5% gain)"
+        elif change > -2:
+            return "Stable performance (±2%)"
+        elif change > -5:
+            return "Moderate negative performance (2-5% loss)"
+        else:
+            return "Strong negative performance (>5% loss)"
+    except:
+        return "Performance analysis unavailable"
+
+
+def analyze_volume(info):
+    try:
+        avg_volume = info.get('averageVolume', 0)
+        current_volume = info.get('volume', 0)
+        ratio = current_volume / avg_volume if avg_volume else 0
+        if ratio > 2:
+            return "Extremely high volume (>2x average)"
+        elif ratio > 1.5:
+            return "High volume (1.5-2x average)"
+        elif ratio > 0.75:
+            return "Normal volume"
+        else:
+            return "Low volume (<75% of average)"
+    except:
+        return "Volume analysis unavailable"
+
+
+def analyze_price_trend(hist):
+    try:
+        last_price = hist['Close'][-1]
+        ma20 = hist['Close'].rolling(window=20).mean().iloc[-1]
+        ma5 = hist['Close'].rolling(window=5).mean().iloc[-1]
+
+        trend = []
+        if last_price > ma20:
+            trend.append("Above 20-day moving average")
+        else:
+            trend.append("Below 20-day moving average")
+
+        if ma5 > ma20:
+            trend.append("Short-term upward trend")
+        else:
+            trend.append("Short-term downward trend")
+
+        return ", ".join(trend)
+    except:
+        return "Trend analysis unavailable"
+
+
+def analyze_market_position(info):
+    try:
+        market_cap = info.get('marketCap', 0)
+        if market_cap >= 200e9:
+            cap_category = "Mega Cap"
+        elif market_cap >= 10e9:
+            cap_category = "Large Cap"
+        elif market_cap >= 2e9:
+            cap_category = "Mid Cap"
+        elif market_cap >= 300e6:
+            cap_category = "Small Cap"
+        else:
+            cap_category = "Micro Cap"
+
+        beta = info.get('beta', 0)
+        if beta > 1.5:
+            volatility = "High volatility"
+        elif beta > 0.5:
+            volatility = "Moderate volatility"
+        else:
+            volatility = "Low volatility"
+
+        return f"{cap_category} stock with {volatility}"
+    except:
+        return "Market position analysis unavailable"
+
+
+@require_http_methods(["POST"])
+def generate_report(request):
+    try:
+        data = json.loads(request.body)
+        symbol = data.get('topic', '').upper()
+
+        ticker = yf.Ticker(symbol)
+        info = ticker.info
+
+        if not info or 'longName' not in info:
+            return JsonResponse({
+                'error': 'Could not find stock information'
+            }, status=400)
+
+        hist = ticker.history(period="1mo")
+
+        report = f"""<div class="text-[#C6A265]">
+<h1 class="text-2xl font-bold mb-4">Financial Report for {symbol}</h1>
+
+<h2 class="text-xl font-semibold mt-6 mb-2">COMPANY OVERVIEW</h2>
+<div class="mb-4">
+    <p>Name: {info.get('longName', symbol)}</p>
+    <p>Industry: {info.get('industry', 'N/A')}</p>
+    <p>Sector: {info.get('sector', 'N/A')}</p>
+    <p>Description: {info.get('longBusinessSummary', 'N/A')}</p>
+</div>
+
+<h2 class="text-xl font-semibold mt-6 mb-2">CURRENT MARKET DATA</h2>
+<div class="mb-4">
+    <p>Current Price: ${info.get('currentPrice', 'N/A')}</p>
+    <p>Previous Close: ${info.get('previousClose', 'N/A')}</p>
+    <p>Open: ${info.get('open', 'N/A')}</p>
+    <p>Day Range: ${info.get('dayLow', 'N/A')} - ${info.get('dayHigh', 'N/A')}</p>
+    <p>Volume: {info.get('volume', 'N/A'):,}</p>
+</div>
+
+<h2 class="text-xl font-semibold mt-6 mb-2">FINANCIAL METRICS</h2>
+<div class="mb-4">
+    <p>Market Cap: ${info.get('marketCap', 'N/A'):,}</p>
+    <p>P/E Ratio: {info.get('trailingPE', 'N/A')}</p>
+    <p>EPS (TTM): ${info.get('trailingEps', 'N/A')}</p>
+    <p>52 Week Range: ${info.get('fiftyTwoWeekLow', 'N/A')} - ${info.get('fiftyTwoWeekHigh', 'N/A')}</p>
+    <p>Forward Dividend Yield: {info.get('dividendYield', 0) * 100:.2f}%</p>
+</div>
+
+<h2 class="text-xl font-semibold mt-6 mb-2">ANALYSIS</h2>
+<div class="mb-4">
+    <p>• Market Performance: {analyze_performance(info)}</p>
+    <p>• Volume Analysis: {analyze_volume(info)}</p>
+    <p>• Price Trend: {analyze_price_trend(hist)}</p>
+    <p>• Market Position: {analyze_market_position(info)}</p>
+</div>
+
+<p class="mt-6 text-sm">Report generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+</div>"""
+
+        return JsonResponse({
+            'status': 'success',
+            'report': report
+        })
+
+    except Exception as e:
+        logging.error(f"Error generating report: {str(e)}")
+        return JsonResponse({
+            'error': 'Failed to generate report. Make sure you entered a valid stock symbol.'
+        }, status=500)

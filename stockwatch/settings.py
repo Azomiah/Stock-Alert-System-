@@ -125,6 +125,10 @@ SECURE_HSTS_PRELOAD = not DEBUG
 # Site URL
 SITE_URL = os.getenv('SITE_URL', 'http://localhost:8000')
 
+
+NEWS_API_KEY = os.getenv('NEWS_API_KEY')
+
+
 # Logging Configuration
 LOGGING = {
     'version': 1,

@@ -14,4 +14,6 @@ urlpatterns = [
     path('stocks/<int:stock_id>/delete/', views.delete_stock, name='delete_stock'),
     path('stocks/check/', views.check_prices, name='check_prices'),
     path('test-alert/', views.test_stock_alert, name='test_alert'),
-] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    path('reports/', views.reports_page, name='reports'),
+    path('generate-report/', views.generate_report, name='generate_report'),
+    ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
